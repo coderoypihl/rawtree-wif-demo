@@ -1,0 +1,40 @@
+name: Inspect GitHub OIDC claims
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decode and inspect OIDC claims
+        run: |
+          python - <<'PY'
+          import os
+          import json
+          import base64
+          import urllib.request
+
+          url = os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"] + "&audience=rawtree"
+          req = urllib.request.Request(
+              url,
+              headers={
+                  "Authorization": "Bearer " + os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]
+              }
+          )
+
+          with urllib.request.urlopen(req) as response:
+              jwt = json.load(response)["value"]
+
+          payload = jwt.split(".")[1]
+          payload += "=" * (-len(payload) % 4)
+          claims = json.loads(base64.urlsafe_b64decode(payload))
+
+          for key in ["iss", "aud", "sub", "repository", "ref",
+                      "repository_id", "repository_owner_id"]:
+              print(f"{key}: {claims.get(key)}")
+          PY
