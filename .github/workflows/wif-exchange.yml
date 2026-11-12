@@ -1,0 +1,35 @@
+name: GitHub OIDC to RawTree
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: rawtree-wif-exchange
+  cancel-in-progress: false
+
+jobs:
+  query:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Check demo assertions
+        run: python3 -m unittest -v
+
+      - name: Exchange identity, query, and reject replay
+        env:
+          RAWTREE_FEDERATION_RULE_ID: ${{ vars.RAWTREE_FEDERATION_RULE_ID }}
+          RAWTREE_SUBJECT: ${{ vars.RAWTREE_SUBJECT }}
+          RAWTREE_AUDIENCE: ${{ vars.RAWTREE_AUDIENCE }}
+          RAWTREE_DEPLOYMENT_ID: ${{ vars.RAWTREE_DEPLOYMENT_ID }}
+          RAWTREE_REGION: ${{ vars.RAWTREE_REGION }}
+        run: python3 demo.py
